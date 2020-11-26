@@ -48,7 +48,7 @@ const server = new ApolloServer({
                   err.originalError instanceof AuthenticationError
               )
             ) {
-              response.data = undefined;
+              //response.data = undefined;
               response.http.status = 401;
             } else if (
               errors.find(
@@ -57,7 +57,7 @@ const server = new ApolloServer({
                   err.originalError instanceof UserInputError
               )
             ) {
-              response.data = undefined;
+              //response.data = undefined;
               response.http.status = 422;
             }
           },
