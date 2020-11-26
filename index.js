@@ -3,6 +3,7 @@ const {
   HttpQueryError,
   ApolloError,
   AuthenticationError,
+  UserInputError,
 } = require("apollo-server-core");
 const mongoose = require("mongoose");
 
@@ -17,7 +18,10 @@ const server = new ApolloServer({
     if (
       body.errors &&
       body.errors.find(
-        (err) => err.extensions && err.extensions.code === "UNAUTHENTICATED"
+        (err) =>
+          err.extensions &&
+          (err.extensions.code === "UNAUTHENTICATED" ||
+            err.extensions.code === "BAD_USER_INPUT")
       )
     ) {
       return {
@@ -46,6 +50,15 @@ const server = new ApolloServer({
             ) {
               response.data = undefined;
               response.http.status = 401;
+            } else if (
+              errors.find(
+                (err) =>
+                  err instanceof UserInputError ||
+                  err.originalError instanceof UserInputError
+              )
+            ) {
+              response.data = undefined;
+              response.http.status = 422;
             }
           },
         };
