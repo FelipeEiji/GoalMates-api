@@ -8,6 +8,7 @@ const {
 } = require("../../util/validators");
 const { SECRET_KEY } = require("../../config");
 const User = require("../../models/User");
+const checkAuth = require("../../util/check-auth");
 
 function generateToken(user) {
   return jwt.sign(
@@ -22,13 +23,42 @@ function generateToken(user) {
 }
 
 module.exports = {
+  Query: {
+    async getUsers(parent, _) {
+      try {
+        const users = await User.find({});
+        console.log(users);
+        return users;
+      } catch (err) {
+        throw new Error(err);
+      }
+    },
+    async getUser(parent, { userId }) {
+      try {
+        const user = await User.findById(userId).populate("users").exec();
+        if (user) {
+          return user;
+        } else {
+          throw new Error("User not found");
+        }
+      } catch (err) {
+        throw new Error(err);
+      }
+    },
+  },
   Mutation: {
     async login(parent, { username, password }) {
       const { errors, valid } = validateLoginInput(username, password);
-      const user = await User.findOne({ username });
 
       if (!valid) {
         throw new UserInputError("Errors", { errors });
+      }
+
+      let user = await User.findOne({ username });
+
+      if (!user) {
+        const email = username;
+        user = await User.findOne({ email });
       }
 
       if (!user) {
@@ -94,6 +124,17 @@ module.exports = {
         id: res._id,
         token,
       };
+    },
+
+    async addFriend(parent, { userId }, context) {
+      const { id } = checkAuth(context);
+      const user = await User.findById(id);
+      const friend = await User.findById(userId);
+      if (friend) {
+        user.friends.push(friend);
+      } else throw new UserInputError("Sem amigos");
+      await user.save();
+      return user;
     },
   },
 };
